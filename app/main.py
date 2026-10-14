@@ -6,8 +6,9 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from .scanner import scan_target
 from .scope import ScopeError, find_scope_entry, load_scope
@@ -23,10 +24,19 @@ app = FastAPI(
     docs_url=None,
     redoc_url=None,
 )
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
 
 _scan_lock = threading.Lock()
 _rate_lock = threading.Lock()
 _last_scan_by_target: dict[str, float] = {}
+
+
+@app.middleware("http")
+async def restrict_browser_origin(request, call_next):
+    origin = request.headers.get("origin")
+    if origin and origin not in {"http://127.0.0.1:8765", "http://localhost:8765"}:
+        return JSONResponse(status_code=403, content={"detail": "This local prototype accepts requests only from its own browser origin."})
+    return await call_next(request)
 
 
 class ScanRequest(BaseModel):

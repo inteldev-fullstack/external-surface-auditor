@@ -70,7 +70,7 @@ Open `http://127.0.0.1:8765` in a browser.
 
 ## Scope and network behavior
 
-- The web server binds to `127.0.0.1`; do not expose it to a network.
+- The web server binds to `127.0.0.1`, accepts only localhost Host headers and browser origins, and must not be exposed to a network.
 - Only exact targets in `config/approved_targets.json` can be scanned. Wildcards, CIDRs, and arbitrary URLs are rejected.
 - The MVP only scans entries marked `staging` or `lab`.
 - Loopback, link-local, multicast, unspecified, and reserved addresses are blocked. Private addresses require an exact allowlist entry with `allow_private: true`.
