@@ -45,4 +45,7 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload $env:GITHUB_REF_NAME dist/ExternalSurfaceAuditor.exe --clobber
+        run: |
+          $checksum = (Get-FileHash dist/ExternalSurfaceAuditor.exe -Algorithm SHA256).Hash.ToLower()
+          "$checksum  ExternalSurfaceAuditor.exe" | Set-Content dist/ExternalSurfaceAuditor.exe.sha256 -Encoding ascii
+          gh release upload $env:GITHUB_REF_NAME dist/ExternalSurfaceAuditor.exe dist/ExternalSurfaceAuditor.exe.sha256 --clobber
