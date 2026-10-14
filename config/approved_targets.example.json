@@ -1,0 +1,13 @@
+{
+  "targets": [
+    {
+      "host": "staging.example.test",
+      "environment": "staging",
+      "paths": [
+        "/health",
+        "/api/health"
+      ],
+      "allow_private": true
+    }
+  ]
+}

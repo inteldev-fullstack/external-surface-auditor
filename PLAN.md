@@ -6,6 +6,14 @@ Product plan for a standalone tool that helps an authorized security team find a
 
 Reduce the time between receiving an approved target and giving the customer a useful, evidence-backed remediation report. The tool combines scoped external discovery with controlled web and API checks, and keeps each customer's assets and results isolated.
 
+## MVP v0.1 implementation status
+
+- A local responsive web interface and Python runner are implemented for Windows, macOS, and Linux.
+- The runner accepts only exact targets in a local allowlist, marked `staging` or `lab`.
+- It checks DNS records, TLS certificate validation and expiry, HTTP response configuration, and analyst-approved health paths using sequential `HEAD` requests.
+- DNS answers are pinned for connections; redirects are not followed; response bodies are not read; results are not stored by the server.
+- This is a local prototype, not a team-hosted product. Tenant accounts, an audit database, customer portals, native mobile, a Windows installer, and authenticated application checks remain future milestones.
+
 ## Intended users
 
 - Security analyst: defines scope, configures a scan, reviews and validates findings.
@@ -136,11 +144,12 @@ Every endpoint enforces tenant membership and role permissions server-side; iden
 ## Delivery milestones
 
 1. **Scope and workflow design:** confirm authorization model, customer roles, scan profiles, and report format.
-2. **Private prototype:** customer workspaces, target allowlists, passive DNS/TLS/HTTP checks, findings view, and audit history.
-3. **Staging assessment:** isolated runner, safe web/API checks, test-account handling, rate controls, and synthetic target lab.
-4. **Reports and retests:** exports, remediation tracking, retest comparison, and customer review access.
-5. **Optional private-network runner:** Windows agent for approved staging assets not reachable from the public internet.
-6. **Mobile companion:** alerts, approvals, scan progress, and report access.
+2. **Local prototype (implemented):** target allowlist, responsive scan UI, DNS/TLS/HTTP/health-path checks, findings view, and JSON export.
+3. **Team prototype:** customer workspaces, role controls, durable audit history, and reviewed reports.
+4. **Staging assessment:** isolated runner, safer web/API checks, test-account handling, rate controls, and synthetic target lab.
+5. **Reports and retests:** exports, remediation tracking, retest comparison, and customer review access.
+6. **Optional private-network runner:** Windows agent for approved staging assets not reachable from the public internet.
+7. **Mobile companion:** alerts, approvals, scan progress, and report access.
 
 ## Acceptance criteria for the first usable release
 
