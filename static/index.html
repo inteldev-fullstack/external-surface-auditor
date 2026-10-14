@@ -3,7 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#091421"><title>External Surface Auditor</title><link rel="stylesheet" href="/static/style.css"><script defer src="/static/app.js"></script></head>
 <body>
 <main class="shell">
-<header><div class="brand"><span class="logo">EA</span><div>External Surface Auditor<small>Local workspace · v1.0</small></div></div><span class="pill">Staging & lab</span></header>
+<header><div class="brand"><span class="logo">EA</span><div>External Surface Auditor<small>Customer workspaces · local PC</small></div></div><div class="workspace-control"><label class="sr-only" for="workspace">Customer workspace</label><select id="workspace" aria-label="Customer workspace"><option>Loading customers…</option></select><button id="new-workspace">Add customer</button></div><span class="pill">Staging & lab</span></header>
 <section class="hero"><div class="eyebrow">SCOPED SECURITY CHECKS</div><h1>Clear evidence.<br>Faster fixes.</h1><p>Inspect DNS, TLS, HTTP configuration and approved health endpoints. Review every observation before sharing it with your customer.</p></section>
 <div id="message" role="status" aria-live="polite"></div>
 <div class="columns">

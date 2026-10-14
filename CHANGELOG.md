@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0
+
+- Add multiple customer workspaces with isolated targets, scan history, exports and same-scope retests in the local application database.
+- Migrate existing JSON scope entries into the default workspace on first startup.
+- Add workspace selection and creation to the responsive web interface.
+- Scope report, cancel and delete API operations to their customer workspace.
+
+
 ## 1.1.0
 
 - Add an installable, offline-capable mobile report viewer that imports JSON locally and does not upload or persist report data.

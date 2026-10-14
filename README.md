@@ -2,8 +2,9 @@
 
 A standalone local security auditor for explicitly approved staging and lab domains/IPs. It checks external DNS, TLS, HTTP configuration and read-only health endpoints, then produces evidence-backed reports for analyst review.
 
-## Version 1.1
+## Version 1.2
 
+- Customer workspaces on one computer, with targets, scan history and retest comparisons separated per workspace.
 - Responsive web UI with target creation, editing and removal; no manual JSON editing required.
 - Asynchronous scans with progress, cancellation and one active job at a time.
 - DNS A/AAAA/CNAME/NS/MX resolution; validated IPs pinned for HTTP connections.
@@ -17,9 +18,9 @@ A standalone local security auditor for explicitly approved staging and lab doma
 
 ## Windows: portable application
 
-Download **ExternalSurfaceAuditor.exe** from [the v1.1.0 release](https://github.com/inteldev-fullstack/external-surface-auditor/releases/tag/v1.1.0). Launch it; the browser opens automatically at `http://127.0.0.1:8765`. Keep the application console open. No Python installation is required for the executable. The release workflow builds and smoke-tests this Windows executable before attaching it.
+Download **ExternalSurfaceAuditor.exe** from [the v1.2.0 release](https://github.com/inteldev-fullstack/external-surface-auditor/releases/tag/v1.1.0). Launch it; the browser opens automatically at `http://127.0.0.1:8765`. Keep the application console open. No Python installation is required for the executable. The release workflow builds and smoke-tests this Windows executable before attaching it.
 
-Packaged Windows state is stored under `%LOCALAPPDATA%\ExternalSurfaceAuditor\`: approved targets in `config\approved_targets.json`, reports in `data\auditor.db`. The executable is not digitally signed. Windows CI verifies the portable build; individual customer networks and Windows configurations still need user acceptance testing.
+Packaged Windows data is stored under `%LOCALAPPDATA%\ExternalSurfaceAuditor\data\auditor.db`. It contains customer workspaces, approved targets and scan reports. The executable is not digitally signed. Windows CI verifies the portable build; individual customer networks and Windows configurations still need user acceptance testing.
 
 ## Windows: run from source
 
@@ -65,11 +66,11 @@ The companion is a private installable web app for report review. It cannot star
 
 ## Local data and access
 
-Source installs use `config/approved_targets.json` and `data/auditor.db` inside the checkout. Both are ignored by Git. History and target configuration are local files, not encrypted application storage; protect the computer and its backups with your operating system's account and disk controls. The application does not upload reports or contact a telemetry service.
+Source installs store customer workspaces, approved targets and report history in `data/auditor.db` inside the checkout. The database is ignored by Git. On upgrade, any legacy `config/approved_targets.json` entries migrate into the default workspace. Data is not encrypted by this application; protect the computer and its backups with your operating system's account and disk controls. The application does not upload reports or contact a telemetry service.
 
 To use custom paths, set `ESA_SCOPE_FILE` to a scope JSON file or `ESA_DATA_DIR` to a database directory before launch. The source scope format is documented in `config/approved_targets.example.json`.
 
-This release is a single-user local application. Its HTTP service binds only to `127.0.0.1`, accepts localhost Host headers and its own browser origins, rejects cross-site requests, and uses a restrictive content security policy. Do not publish this local API through a tunnel or bind it to a network interface. The mobile PWA at `/mobile/` imports JSON exports for private offline review. The phone viewer does not invoke the scan runner; scans still run on the Windows/desktop installation.
+This release is a single-user local application. Its HTTP service binds only to `127.0.0.1`, accepts localhost Host headers and its own browser origins, rejects cross-site requests, and uses a restrictive content security policy. Do not publish this local API through a tunnel or bind it to a network interface. The mobile PWA at `/mobile/` imports JSON exports for private offline review. The phone viewer does not invoke the scan runner; scans still run on the Windows/desktop installation. The desktop app supports multiple local customer workspaces, but has no team logins: the Windows computer owner can access all workspaces.
 
 ## Check boundaries
 
@@ -80,7 +81,7 @@ This release is a single-user local application. Its HTTP service binds only to 
 - Only DNS lookups and HEAD requests; no crawling, brute force, credential testing, request bodies, transactions, exploit payloads, or application response bodies.
 - Reported missing headers and connectivity failures require context. They are observations, not proof of exploitability. A cancelled job discards partial results. A stopped runner marks unfinished jobs interrupted on next startup.
 
-The local confirmation is an operator declaration, not independent proof of domain ownership or customer authorization. There are no multi-user accounts, customer tenant isolation, authenticated API role checks, or remote scheduling in this release.
+The local confirmation is an operator declaration, not independent proof of domain ownership or customer authorization. Workspaces isolate local targets and reports by customer ID, but they are not a security boundary between Windows users. There are no team accounts, remote access, authenticated API roles or cloud scheduling.
 
 ## Development and validation
 
