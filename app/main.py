@@ -68,6 +68,10 @@ class WorkspaceRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
     name: str = Field(min_length=2, max_length=80)
 
+class OpenAPIImportRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    document_json: str = Field(min_length=2, max_length=1_048_576)
+
 def ensure_workspace(workspace_id):
     if not _store.workspace_exists(workspace_id): raise HTTPException(404, 'Workspace not found.')
 
@@ -126,6 +130,28 @@ def list_workspaces(): return {'workspaces':_store.workspaces()}
 def create_workspace(request: WorkspaceRequest):
     try: return _store.create_workspace(request.name)
     except ValueError as exc: raise HTTPException(409 if 'already exists' in str(exc) else 400, str(exc)) from exc
+
+@app.post('/api/workspaces/{workspace_id}/openapi/paths')
+def import_openapi_paths(workspace_id: str, request: OpenAPIImportRequest):
+    ensure_workspace(workspace_id)
+    try:
+        document=json.loads(request.document_json)
+    except (json.JSONDecodeError,RecursionError) as exc:
+        raise HTTPException(400,'The selected file is not valid OpenAPI JSON.') from exc
+    if not isinstance(document,dict) or not str(document.get('openapi','')).startswith('3.') or not isinstance(document.get('paths'),dict):
+        raise HTTPException(400,'Provide an OpenAPI 3 JSON document with a paths object.')
+    candidates=[]
+    for path, operations in document['paths'].items():
+        if not isinstance(path,str) or not isinstance(operations,dict): continue
+        if any(token in path for token in ('{','}','*')): continue
+        try:
+            from .scope import validate_path
+            safe_path=validate_path(path)
+        except ScopeError: continue
+        if any(method.lower() in operations for method in ('get','head')):
+            if safe_path not in candidates: candidates.append(safe_path)
+        if len(candidates)>=10: break
+    return {'paths':candidates,'note':'Only explicit GET/HEAD paths are listed. The importer does not fetch the document or send requests. Review each endpoint, add selected paths to this workspace, and confirm the customer authorized HEAD checks.'}
 
 @app.get('/api/scope')
 def default_scope(): return get_scope('default')

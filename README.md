@@ -10,6 +10,7 @@ A standalone local security auditor for explicitly approved staging and lab doma
 - DNS A/AAAA/CNAME/NS/MX resolution; validated IPs pinned for HTTP connections.
 - TLS certificate validation, protocol, expiry and HTTPS response configuration.
 - Sequential HEAD requests to the root and up to 10 explicitly approved health paths; timing and HTTP 5xx observations.
+- Optional local OpenAPI 3 JSON import that suggests up to 10 concrete GET/HEAD health paths. Importing never contacts the API; analysts review paths and confirm authorization before any scan.
 - Findings with severity, confidence, evidence and remediation guidance; search and severity filters.
 - SQLite scan history on the local computer; export PDF, CSV or JSON; report deletion.
 - Retest comparison with the previous completed assessment of the same target and exact scope. Missing observations do not prove remediation.
@@ -18,7 +19,7 @@ A standalone local security auditor for explicitly approved staging and lab doma
 
 ## Windows: portable application
 
-Download **ExternalSurfaceAuditor.exe** from [the v1.2.0 release](https://github.com/inteldev-fullstack/external-surface-auditor/releases/tag/v1.1.0). Launch it; the browser opens automatically at `http://127.0.0.1:8765`. Keep the application console open. No Python installation is required for the executable. The release workflow builds and smoke-tests this Windows executable before attaching it.
+Download **ExternalSurfaceAuditor.exe** from [the v1.2.0 release](https://github.com/inteldev-fullstack/external-surface-auditor/releases/tag/v1.2.0). Launch it; the browser opens automatically at `http://127.0.0.1:8765`. Keep the application console open. No Python installation is required for the executable. The release workflow builds and smoke-tests this Windows executable before attaching it.
 
 Packaged Windows data is stored under `%LOCALAPPDATA%\ExternalSurfaceAuditor\data\auditor.db`. It contains customer workspaces, approved targets and scan reports. The executable is not digitally signed. Windows CI verifies the portable build; individual customer networks and Windows configurations still need user acceptance testing.
 
@@ -51,7 +52,7 @@ For a headless machine use `.venv/bin/python -m app.main` instead of the browser
 
 1. Open `http://127.0.0.1:8765` on the same computer running the application.
 2. Select **Add target**. Enter one exact authorized hostname or IP and choose staging or lab.
-3. Add only known read-only health paths. Select private-network approval only for an approved private target. Confirm authorization and save.
+3. Add only known read-only health paths, or select a local OpenAPI 3 JSON file to review concrete GET/HEAD path suggestions. Importing the file sends no requests. Select private-network approval only for an approved private target. Confirm authorization and save.
 4. Select the target, confirm current authorization and run checks.
 5. Review progress and findings. Cancel if needed; cancellation takes effect between bounded DNS/socket operations.
 6. Download PDF, CSV or JSON. After remediation, select **Retest** from history and run again. The latest identical-scope report is compared automatically.
