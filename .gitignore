@@ -5,3 +5,8 @@ __pycache__/
 config/approved_targets.json
 reports/
 .DS_Store
+data/
+.pytest_cache/
+build/
+dist/
+*.spec

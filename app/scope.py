@@ -4,9 +4,12 @@ import ipaddress
 import json
 import os
 import re
+import tempfile
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from .paths import default_scope_file
 
 
 class ScopeError(ValueError):
@@ -68,7 +71,7 @@ def scope_file_path() -> Path:
     configured = os.environ.get("ESA_SCOPE_FILE")
     if configured:
         return Path(configured).expanduser().resolve()
-    return Path(__file__).resolve().parents[1] / "config" / "approved_targets.json"
+    return default_scope_file()
 
 
 def load_scope() -> list[ScopeEntry]:
@@ -79,6 +82,10 @@ def load_scope() -> list[ScopeEntry]:
         raw: Any = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ScopeError("The approved target file could not be read.") from exc
+    return parse_scope(raw)
+
+
+def parse_scope(raw: Any) -> list[ScopeEntry]:
     if not isinstance(raw, dict) or not isinstance(raw.get("targets"), list):
         raise ScopeError("The approved target file must contain a targets list.")
 
@@ -135,3 +142,33 @@ def validate_resolved_address(value: str, allow_private: bool) -> ipaddress.IPv4
     if address.is_private and allow_private:
         return address
     raise ScopeError("The target resolves to a private address; explicit private-target approval is required.")
+
+
+_scope_write_lock = threading.Lock()
+
+def save_scope(entries: list[dict[str, Any]]) -> list[ScopeEntry]:
+    validated = parse_scope({"targets": entries})
+    normalized = [{"host": e.host, "environment": e.environment, "paths": list(e.paths), "allow_private": e.allow_private} for e in validated]
+    path = scope_file_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(dir=path.parent, prefix=".scope-")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump({"targets": normalized}, stream, indent=2)
+            stream.write("\n")
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+    return validated
+
+def mutate_scope(host: str, value: dict[str, Any] | None) -> None:
+    host = normalize_host(host)
+    with _scope_write_lock:
+        entries = [{"host": e.host, "environment": e.environment, "paths": list(e.paths), "allow_private": e.allow_private} for e in load_scope()]
+        entries = [e for e in entries if e["host"] != host]
+        if value is not None:
+            if normalize_host(value["host"]) != host:
+                raise ScopeError("The entry hostname must match the selected target.")
+            entries.append(value)
+        save_scope(entries)

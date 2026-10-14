@@ -6,13 +6,11 @@ Product plan for a standalone tool that helps an authorized security team find a
 
 Reduce the time between receiving an approved target and giving the customer a useful, evidence-backed remediation report. The tool combines scoped external discovery with controlled web and API checks, and keeps each customer's assets and results isolated.
 
-## MVP v0.1 implementation status
+## Version 1.0 implementation status
 
-- A local responsive web interface and Python runner are implemented for Windows, macOS, and Linux.
-- The runner accepts only exact targets in a local allowlist, marked `staging` or `lab`.
-- It checks DNS records, TLS certificate validation and expiry, HTTP response configuration, and analyst-approved health paths using sequential `HEAD` requests.
-- DNS answers are pinned for connections; redirects are not followed; response bodies are not read; results are not stored by the server.
-- This is a local prototype, not a team-hosted product. Tenant accounts, an audit database, customer portals, native mobile, a Windows installer, and authenticated application checks remain future milestones.
+Implemented: single-user local responsive web app, exact approved staging/lab target management, asynchronous scan jobs, status/cancellation, local SQLite history, DNS/TLS/HTTP HEAD checks, health paths, evidence and remediation, PDF/CSV/JSON reports, same-scope retest comparison, Windows launch scripts/portable executable workflow, and regression CI on Windows/Linux.
+
+The executable is built and smoke-tested by the release workflow; the release assets and Actions runs provide its current verification status. Full team hosting, customer tenants, authentication/MFA, authenticated web/API assessments, remote workers, native mobile apps and customer portals below remain future milestones. This version is not an exhaustive vulnerability assessment.
 
 ## Intended users
 

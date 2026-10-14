@@ -1,0 +1,48 @@
+name: Windows executable
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt "pyinstaller>=6.15,<7"
+      - name: Build portable executable
+        run: python -m PyInstaller --noconfirm --clean --onefile --name ExternalSurfaceAuditor --add-data "static;static" --collect-data reportlab --collect-submodules dns --collect-submodules uvicorn windows_entry.py
+      - name: Smoke test executable
+        shell: pwsh
+        run: |
+          $env:LOCALAPPDATA = Join-Path $env:RUNNER_TEMP "auditor-smoke"
+          $auditorProcess = Start-Process -FilePath .\dist\ExternalSurfaceAuditor.exe -PassThru
+          try {
+            $ready = $false
+            for ($attempt = 0; $attempt -lt 60; $attempt++) {
+              try {
+                $health = Invoke-RestMethod http://127.0.0.1:8765/api/health
+                if ($health.version -eq "1.0.0") { $ready = $true; break }
+              } catch {}
+              Start-Sleep -Seconds 1
+            }
+            if (-not $ready) { throw "Executable did not become ready" }
+            $page = Invoke-WebRequest http://127.0.0.1:8765/
+            if ($page.Content -notmatch "External Surface Auditor") { throw "UI resource missing" }
+            Invoke-WebRequest http://127.0.0.1:8765/static/app.js | Out-Null
+          } finally { Stop-Process -Id $auditorProcess.Id -ErrorAction SilentlyContinue }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ExternalSurfaceAuditor-Windows
+          path: dist/ExternalSurfaceAuditor.exe
+      - name: Attach executable to release
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload $env:GITHUB_REF_NAME dist/ExternalSurfaceAuditor.exe --clobber

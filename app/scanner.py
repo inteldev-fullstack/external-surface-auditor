@@ -6,7 +6,7 @@ import socket
 import ssl
 import time
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import urlsplit
 
 import dns.exception
@@ -18,7 +18,7 @@ CONNECT_TIMEOUT = 4.0
 DNS_TIMEOUT = 2.5
 REQUEST_DELAY = 0.25
 MAX_DNS_RECORDS = 16
-USER_AGENT = "ExternalSurfaceAuditor/0.1 (authorized staging assessment)"
+USER_AGENT = "ExternalSurfaceAuditor/1.0 (authorized staging assessment)"
 SAFE_HEADERS = (
     "strict-transport-security",
     "content-security-policy",
@@ -55,7 +55,7 @@ class PinnedHTTPSConnection(http.client.HTTPSConnection):
             raise
 
 
-def _resolve(host: str, allow_private: bool) -> tuple[list[str], dict[str, list[str]], list[str]]:
+def _resolve(host: str, allow_private: bool, checkpoint: Callable[[], None] = lambda: None) -> tuple[list[str], dict[str, list[str]], list[str]]:
     try:
         literal = ipaddress.ip_address(host)
     except ValueError:
@@ -69,6 +69,7 @@ def _resolve(host: str, allow_private: bool) -> tuple[list[str], dict[str, list[
     records: dict[str, list[str]] = {"A": [], "AAAA": [], "CNAME": [], "NS": [], "MX": []}
     errors: list[str] = []
     for record_type in records:
+        checkpoint()
         try:
             answer = resolver.resolve(host, record_type, lifetime=DNS_TIMEOUT, raise_on_no_answer=False)
             if answer.rrset:
@@ -103,7 +104,12 @@ def _request_head(host: str, address: str, path: str, use_tls: bool) -> dict[str
     else:
         connection = PinnedHTTPConnection(host, address, port, CONNECT_TIMEOUT)
 
+    started = time.monotonic()
     try:
+        connection.connect()
+        tls_socket = connection.sock
+        tls_certificate = tls_socket.getpeercert() if use_tls else None
+        tls_version = tls_socket.version() if use_tls else None
         connection.request(
             "HEAD",
             path,
@@ -140,8 +146,8 @@ def _request_head(host: str, address: str, path: str, use_tls: bool) -> dict[str
                 except UnicodeError:
                     normalized_redirect_host = None
         tls_info: dict[str, Any] | None = None
-        if use_tls and connection.sock:
-            certificate = connection.sock.getpeercert()
+        if use_tls and tls_certificate is not None:
+            certificate = tls_certificate
             not_after = certificate.get("notAfter") if certificate else None
             expiry = None
             days_remaining = None
@@ -150,7 +156,7 @@ def _request_head(host: str, address: str, path: str, use_tls: bool) -> dict[str
                 expiry = expiry_dt.isoformat()
                 days_remaining = (expiry_dt - datetime.now(UTC)).days
             tls_info = {
-                "version": connection.sock.version(),
+                "version": tls_version,
                 "certificate_expires_at": expiry,
                 "certificate_days_remaining": days_remaining,
                 "certificate_verified": True,
@@ -158,6 +164,7 @@ def _request_head(host: str, address: str, path: str, use_tls: bool) -> dict[str
         return {
             "scheme": "https" if use_tls else "http",
             "path": path,
+            "elapsed_ms": round((time.monotonic() - started) * 1000),
             "status": response.status,
             "reason": response.reason[:80],
             "headers": headers,
@@ -225,6 +232,7 @@ def _check_http_findings(probes: list[dict[str, Any]], findings: list[dict[str, 
         if (
             (https_root is None or https_root["status"] is None)
             and not (https_root and https_root.get("tls_validation_failed"))
+            and not (300 <= http_root["status"] < 400 and http_root.get("redirect_scheme") == "https")
         ):
             findings.append(
                 _finding(
@@ -296,9 +304,18 @@ def _check_http_findings(probes: list[dict[str, Any]], findings: list[dict[str, 
             )
 
 
-def scan_target(entry: ScopeEntry) -> dict[str, Any]:
+class ScanCancelled(Exception):
+    pass
+
+
+def scan_target(entry: ScopeEntry, on_progress: Callable[[str], None] = lambda _: None, cancelled: Callable[[], bool] = lambda: False) -> dict[str, Any]:
+    def checkpoint():
+        if cancelled():
+            raise ScanCancelled("Cancelled by operator.")
+    checkpoint()
+    on_progress("Resolving and validating DNS addresses")
     started_at = datetime.now(UTC)
-    addresses, dns_records, dns_errors = _resolve(entry.host, entry.allow_private)
+    addresses, dns_records, dns_errors = _resolve(entry.host, entry.allow_private, checkpoint)
     findings: list[dict[str, Any]] = []
     if not addresses:
         findings.append(
@@ -329,12 +346,16 @@ def scan_target(entry: ScopeEntry) -> dict[str, Any]:
 
     pinned_address = addresses[0]
     probes: list[dict[str, Any]] = []
+    checkpoint()
+    on_progress("Checking HTTP configuration")
     time.sleep(REQUEST_DELAY)
     http_root = _request_head(entry.host, pinned_address, "/", use_tls=False)
     probes.append(http_root)
 
     paths = list(dict.fromkeys(["/"] + list(entry.paths)))
     for path in paths:
+        checkpoint()
+        on_progress(f"Checking TLS and HTTPS path {path}")
         time.sleep(REQUEST_DELAY)
         probes.append(_request_head(entry.host, pinned_address, path, use_tls=True))
 
@@ -390,6 +411,8 @@ def scan_target(entry: ScopeEntry) -> dict[str, Any]:
                     "Renew the certificate before its expiry date and verify the full certificate chain.",
                 )
             )
+    checkpoint()
+    on_progress("Preparing findings and evidence")
     _check_http_findings(probes, findings)
 
     status_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
