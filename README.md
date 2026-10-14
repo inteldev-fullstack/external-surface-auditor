@@ -2,7 +2,7 @@
 
 A standalone local security auditor for explicitly approved staging and lab domains/IPs. It checks external DNS, TLS, HTTP configuration and read-only health endpoints, then produces evidence-backed reports for analyst review.
 
-## Version 1.0
+## Version 1.1
 
 - Responsive web UI with target creation, editing and removal; no manual JSON editing required.
 - Asynchronous scans with progress, cancellation and one active job at a time.
@@ -17,7 +17,7 @@ A standalone local security auditor for explicitly approved staging and lab doma
 
 ## Windows: portable application
 
-Download **ExternalSurfaceAuditor.exe** from [Releases](https://github.com/inteldev-fullstack/external-surface-auditor/releases). Launch it; the browser opens automatically at `http://127.0.0.1:8765`. Keep the application console open. No Python installation is required for the executable. The release workflow builds and smoke-tests this Windows executable before attaching it.
+Download **ExternalSurfaceAuditor.exe** from [the v1.1.0 release](https://github.com/inteldev-fullstack/external-surface-auditor/releases/tag/v1.1.0). Launch it; the browser opens automatically at `http://127.0.0.1:8765`. Keep the application console open. No Python installation is required for the executable. The release workflow builds and smoke-tests this Windows executable before attaching it.
 
 Packaged Windows state is stored under `%LOCALAPPDATA%\ExternalSurfaceAuditor\`: approved targets in `config\approved_targets.json`, reports in `data\auditor.db`. The executable is not digitally signed. Windows CI verifies the portable build; individual customer networks and Windows configurations still need user acceptance testing.
 
@@ -57,13 +57,19 @@ For a headless machine use `.venv/bin/python -m app.main` instead of the browser
 
 The empty initial scope is intentional. No customer target is preconfigured and the example `.test` domain is not an operational service.
 
+## Mobile report companion
+
+Open `https://external-surface-auditor-mobile-preview.inteldev-manager.chatgpt.site` while signed into the Site owner's ChatGPT account, then save it to the phone home screen (Android browser: Install app; iPhone Safari: Share → Add to Home Screen). On the PC, export a scan as JSON and transfer that file to your phone using your approved private file-sharing method. In the PWA, choose the JSON report. Findings render locally, the page works offline after first load, and it does not upload or save report data. Clear the report before handing off the phone.
+
+The companion is a private installable web app for report review. It cannot start scans; run scans from the Windows/desktop application.
+
 ## Local data and access
 
 Source installs use `config/approved_targets.json` and `data/auditor.db` inside the checkout. Both are ignored by Git. History and target configuration are local files, not encrypted application storage; protect the computer and its backups with your operating system's account and disk controls. The application does not upload reports or contact a telemetry service.
 
 To use custom paths, set `ESA_SCOPE_FILE` to a scope JSON file or `ESA_DATA_DIR` to a database directory before launch. The source scope format is documented in `config/approved_targets.example.json`.
 
-This release is a single-user local application. Its HTTP service binds only to `127.0.0.1`, accepts localhost Host headers and its own browser origins, rejects cross-site requests, and uses a restrictive content security policy. Do not publish this local API through a tunnel or bind it to a network interface. The responsive UI is not a native mobile app; the existing hosted mobile demo uses sample data and does not invoke this runner.
+This release is a single-user local application. Its HTTP service binds only to `127.0.0.1`, accepts localhost Host headers and its own browser origins, rejects cross-site requests, and uses a restrictive content security policy. Do not publish this local API through a tunnel or bind it to a network interface. The mobile PWA at `/mobile/` imports JSON exports for private offline review. The phone viewer does not invoke the scan runner; scans still run on the Windows/desktop installation.
 
 ## Check boundaries
 

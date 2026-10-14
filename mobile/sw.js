@@ -1,0 +1,6 @@
+'use strict';
+const CACHE='esa-report-viewer-v1';
+const FILES=['/mobile/','/mobile/index.html','/mobile/style.css','/mobile/app.js','/mobile/manifest.webmanifest','/mobile/icon.svg'];
+self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(FILES)).then(()=>self.skipWaiting())));
+self.addEventListener('activate',event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
+self.addEventListener('fetch',event=>{const request=event.request;if(request.method!=='GET'||new URL(request.url).origin!==self.location.origin)return;event.respondWith(caches.match(request).then(cached=>cached||fetch(request).then(response=>{if(response.ok)caches.open(CACHE).then(cache=>cache.put(request,response.clone()));return response}).catch(()=>new Response('Offline. Reopen the installed report viewer.',{status:503,headers:{'Content-Type':'text/plain'}}))))});

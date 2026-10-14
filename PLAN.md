@@ -6,9 +6,9 @@ Product plan for a standalone tool that helps an authorized security team find a
 
 Reduce the time between receiving an approved target and giving the customer a useful, evidence-backed remediation report. The tool combines scoped external discovery with controlled web and API checks, and keeps each customer's assets and results isolated.
 
-## Version 1.0 implementation status
+## Version 1.1 implementation status
 
-Implemented: single-user local responsive web app, exact approved staging/lab target management, asynchronous scan jobs, status/cancellation, local SQLite history, DNS/TLS/HTTP HEAD checks, health paths, evidence and remediation, PDF/CSV/JSON reports, same-scope retest comparison, Windows launch scripts/portable executable workflow, and regression CI on Windows/Linux.
+Implemented: single-user local responsive web app, exact approved staging/lab target management, asynchronous scan jobs, status/cancellation, local SQLite history, DNS/TLS/HTTP HEAD checks, health paths, evidence and remediation, PDF/CSV/JSON reports, same-scope retest comparison, Windows launch scripts/portable executable workflow, a PWA for private offline mobile report review, and regression CI on Windows/Linux.
 
 The executable is built and smoke-tested by the release workflow; the release assets and Actions runs provide its current verification status. Full team hosting, customer tenants, authentication/MFA, authenticated web/API assessments, remote workers, native mobile apps and customer portals below remain future milestones. This version is not an exhaustive vulnerability assessment.
 

@@ -16,7 +16,7 @@ jobs:
           cache: pip
       - run: python -m pip install -r requirements.txt "pyinstaller>=6.15,<7"
       - name: Build portable executable
-        run: python -m PyInstaller --noconfirm --clean --onefile --name ExternalSurfaceAuditor --add-data "static;static" --collect-data reportlab --collect-submodules dns --collect-submodules uvicorn windows_entry.py
+        run: python -m PyInstaller --noconfirm --clean --onefile --name ExternalSurfaceAuditor --add-data "static;static" --add-data "mobile;mobile" --collect-data reportlab --collect-submodules dns --collect-submodules uvicorn windows_entry.py
       - name: Smoke test executable
         shell: pwsh
         run: |
@@ -27,13 +27,17 @@ jobs:
             for ($attempt = 0; $attempt -lt 60; $attempt++) {
               try {
                 $health = Invoke-RestMethod http://127.0.0.1:8765/api/health
-                if ($health.version -eq "1.0.0") { $ready = $true; break }
+                if ($health.version -eq "1.1.0") { $ready = $true; break }
               } catch {}
               Start-Sleep -Seconds 1
             }
             if (-not $ready) { throw "Executable did not become ready" }
             $page = Invoke-WebRequest http://127.0.0.1:8765/
             if ($page.Content -notmatch "External Surface Auditor") { throw "UI resource missing" }
+            $mobile = Invoke-WebRequest http://127.0.0.1:8765/mobile/
+            if ($mobile.Content -notmatch "Mobile report viewer") { throw "Mobile report viewer missing" }
+            Invoke-WebRequest http://127.0.0.1:8765/mobile/manifest.webmanifest | Out-Null
+            Invoke-WebRequest http://127.0.0.1:8765/mobile/sw.js | Out-Null
             Invoke-WebRequest http://127.0.0.1:8765/static/app.js | Out-Null
           } finally { Stop-Process -Id $auditorProcess.Id -ErrorAction SilentlyContinue }
       - uses: actions/upload-artifact@v4

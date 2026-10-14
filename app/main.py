@@ -32,7 +32,7 @@ async def lifespan(app):
         for event in _active.values():
             event.set()
 
-app = FastAPI(title='External Surface Auditor', version='1.0.0', docs_url=None, redoc_url=None, lifespan=lifespan)
+app = FastAPI(title='External Surface Auditor', version='1.1.0', docs_url=None, redoc_url=None, lifespan=lifespan)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=['127.0.0.1', 'localhost'])
 
 @app.middleware('http')
@@ -45,7 +45,7 @@ async def local_origin(request, call_next):
     response = await call_next(request)
     response.headers['Cache-Control'] = 'no-store'
     response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; img-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
     return response
 
 class TargetRequest(BaseModel):
@@ -71,9 +71,20 @@ def asset(name: str):
         raise HTTPException(404, 'Asset not found.')
     return FileResponse(APP_ROOT / 'static' / name)
 
+@app.get('/mobile', include_in_schema=False)
+@app.get('/mobile/', include_in_schema=False)
+def mobile_viewer():
+    return FileResponse(APP_ROOT / 'mobile' / 'index.html')
+
+@app.get('/mobile/{name}', include_in_schema=False)
+def mobile_asset(name: str):
+    if name not in {'app.js', 'style.css', 'manifest.webmanifest', 'sw.js', 'icon.svg'}:
+        raise HTTPException(404, 'Mobile asset not found.')
+    return FileResponse(APP_ROOT / 'mobile' / name)
+
 @app.get('/api/health')
 def health():
-    return {'status': 'ok', 'mode': 'local-staging-only', 'version': '1.0.0'}
+    return {'status': 'ok', 'mode': 'local-staging-only', 'version': '1.1.0'}
 
 @app.get('/api/scope')
 def scope():
@@ -117,7 +128,7 @@ def worker(job_id, entry, cancellation):
         if cancellation.is_set():
             raise ScanCancelled()
         report['scope_snapshot'] = {**asdict(entry), 'paths': list(entry.paths)}
-        report['scanner_version'] = '1.0.0'
+        report['scanner_version'] = '1.1.0'
         report['job_id'] = job_id
         previous = _store.previous(entry.host, job_id)
         if previous and previous['report'].get('scope_snapshot') == report['scope_snapshot']:

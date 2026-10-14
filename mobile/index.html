@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#091421"><meta name="description" content="Private offline report viewer for External Surface Auditor scan exports."><link rel="manifest" href="/mobile/manifest.webmanifest"><link rel="stylesheet" href="/mobile/style.css"><link rel="icon" href="/mobile/icon.svg"><title>ESA Reports</title><script defer src="/mobile/app.js"></script>
+</head><body>
+<header><div class="brand"><span class="logo">EA</span><span>External Surface Auditor<small>Mobile report viewer · offline ready</small></span></div><span class="pill">PRIVATE ON DEVICE</span></header>
+<main>
+<section class="intro"><div class="eyebrow">SECURE REPORT REVIEW</div><h1>Findings in your pocket.</h1><p>Open a JSON report exported by the desktop auditor. The file is read on this device and never uploaded.</p></section>
+<section id="import" class="card"><label for="file">Choose scan report (.json)</label><input id="file" type="file" accept="application/json,.json"><div class="row"><button id="sample" class="secondary">View sample</button><button id="install" class="secondary" hidden>Install viewer</button></div><div id="status" role="status" aria-live="polite"></div></section>
+<section id="report" hidden><div class="report-head"><div><div class="eyebrow">ASSESSMENT REPORT</div><h2 id="target"></h2><p id="meta"></p></div><button id="clear" class="secondary">Clear</button></div><div id="counts" class="counts"></div><div class="filters"><label>Severity<select id="severity"><option value="">All</option><option>critical</option><option>high</option><option>medium</option><option>low</option><option>info</option></select></label><label>Findings<input id="search" type="search" placeholder="Search evidence or fix"></label></div><div id="findings"></div><details><summary>Assessment notes</summary><ul id="notes"></ul></details><p class="privacy">Report data exists in this page only. Clear it before handing off the phone.</p></section>
+</main><footer>Local report viewer · No login or scan runner · Works offline after installation</footer>
+</body></html>
